@@ -1,0 +1,180 @@
+javascript:
+	var current_card = #{{@flashcard.to_json}};
+
+	function updateCardUi(card) {
+		$('#flashcard').html(card['word']);
+	}
+
+	function setFlipState() {
+		$('#action').removeClass('state-next').addClass('state-flip');
+		$('#action').html('FLIP');
+	}
+
+	function setNextState() {
+		$('#action').removeClass('state-flip').addClass('state-next');
+		$('#action').html('NEXT');
+	}
+
+	function showDefinition() {
+		$('#flashcard').html(current_card['definition']);
+	}
+
+	function fetchCard(card_id) {
+		// Fetch data for card_id
+		// update UI and state with new card
+		// If no card at card_id, fetch card with id 1
+		if($('#easy').is(':checked')){
+			$.getJSON("/flashcard/" + card_id, function ( flashcard ) {
+				current_card = flashcard;			
+				if (current_card === null) {
+					fetchCard(1);
+				}
+				else if (compareDifficulty("easy", current_card['difficulty']) === true) {
+					updateCardUi(flashcard)
+					setFlipState();
+				}
+				else {
+					card_id = card_id + 1;
+					fetchCard(card_id);
+				}
+			});
+		}
+		else if($('#medium').is(':checked')) {
+			$.getJSON("/flashcard/" + card_id, function ( flashcard ) {
+				current_card = flashcard;
+				
+				if (current_card === null) {
+					fetchCard(1);
+				}
+				else if (compareDifficulty("medium", current_card['difficulty']) === true) {
+					updateCardUi(flashcard)
+					setFlipState();
+				}
+				else {
+					card_id = card_id + 1;
+					fetchCard(card_id);
+				}
+			});
+		}
+		else if($('#hard').is(':checked')) {
+			$.getJSON("/flashcard/" + card_id, function ( flashcard ) {
+				current_card = flashcard;		
+				if (current_card === null) {
+					fetchCard(1);
+				}
+				else if (compareDifficulty("hard", current_card['difficulty']) === true) {
+					updateCardUi(flashcard)
+					setFlipState();
+				}
+				else {
+					card_id = card_id + 1;
+					fetchCard(card_id);
+				}
+			});
+		}
+		else { 
+			$.getJSON("/flashcard/" + card_id, function ( flashcard ) {
+				current_card = flashcard;
+				if (current_card === null) {
+					console.log('Resetting to first card');
+					fetchCard(1);
+				}
+				else { 
+					updateCardUi(flashcard);
+					setFlipState();
+				}
+			});
+		}
+	}
+
+	function compareDifficulty(level_check, card_difficulty) {
+		if (level_check === "easy") {
+			if (card_difficulty === 1) {
+				return true
+			}
+			else {
+				return false
+			}
+		}
+		else if (level_check === "medium") {
+			if (card_difficulty === 2) { 
+				return true
+			}
+			else {
+				return false
+			}
+		}
+		else {
+			if (card_difficulty === 3){
+				return true
+			}
+			else {
+				return false
+			}
+		}
+	}
+
+	function createCard() {
+		$.post('/flashcard', {'flashcard' : {
+			'word' : $('#word-input').val(),
+			'definition' : $('#def-input').val(),
+			'difficulty' : parseInt($('#diff-input').val(), 10)
+		}}, function(response) {
+			$('#create-card').find('input:text').val('');
+		});
+	}
+
+	$(function() { // document ready
+
+		// Flip / Next Button Click
+		$('#action').on('click', function() {
+
+			if ($(this).hasClass('state-flip')) {
+				setNextState();
+				showDefinition();
+			}
+			else if ($(this).hasClass('state-next')) {
+				var next_id = current_card['id'] + 1;
+				fetchCard(next_id);
+			}	
+		});
+
+		// Create card Button Click
+		$('#create').on('click', function(evt) {
+			evt.preventDefault();
+			console.log('create button clicked');
+			if ($('#word-input').val() === "" || $('#def-input').val() === ""){
+				alert('Please fill out all fields.')
+			}
+
+			createCard();
+		});
+
+		$('#see-all').on('click', function(evt) {
+			window.location = "/flashcards";
+		});
+
+	});
+
+	
+h2 Create Card
+form#create-card
+	input#word-input type="text" placeholder="Word"
+	input#def-input type="text" placeholder="Definition"
+	select#diff-input
+		option value="1" Easy
+		option value="2" Medium
+		option value="3" Hard
+	input.button#create type="submit" value="New Card >>"
+
+h2 Study Mode
+
+form#study-difficulty
+	input type="radio" name="difficulty" id="easy" value="easy" Easy
+	input type="radio" name="difficulty" id="medium" value="medium" Medium
+	input type="radio" name="difficulty" id="hard" value="hard" Hard
+
+section
+	p#flashcard=@flashcard.word
+button#action.state-flip FLIP
+button#see-all SEE ALL CARDS

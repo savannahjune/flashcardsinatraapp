@@ -1,0 +1,73 @@
+
+h2 My Cards
+table.flashcards
+	tr#toprow 
+		td Word
+		td Definition
+		td Difficulty
+		td
+	- @flashcards.each do |flashcard|
+		tr
+		  td.flashcard id="#{flashcard.id}-viewword"
+		  	=flashcard.word
+		  td.flashcard id="#{flashcard.id}-viewdefintion"
+		  	=flashcard.definition
+		  td.flashcard id="#{flashcard.id}-viewdifficulty"
+		  	=flashcard.difficulty
+		  td 
+		  	button.edit id="#{flashcard.id}-edit" Edit
+		  td
+		  	form style="display:none" id="#{flashcard.id}-edit-form" action="/flashcard/#{flashcard.id}" method="POST" title="Edit"
+				  	input type="hidden" name="_method" value="PUT"
+					  input type="hidden" name="id" value="#{flashcard.id}"
+				  	input type="text" id="#{flashcard.id}-word" name="word" value="#{flashcard.word}"
+				  	input type="text" id="#{flashcard.id}-defintion" name="definition" value="#{flashcard.definition}"
+				  	select id="#{flashcard.id}-difficulty"
+							option value="1" Easy
+							option value="2" Medium
+							option value="3" Hard
+				  	button.save id="#{flashcard.id}-submit" type="submit" Save Changes
+
+javascript:
+
+	function saveChanges(id) {
+		$.ajax({
+			url: '/flashcard/' + id,
+			contentType: 'application/json',
+			type: 'PUT',
+			data: JSON.stringify({'flashcard': {
+				'word' : $('#' + id + '-word').val(),
+				'definition' : $('#' + id + '-defintion').val(),
+				'difficulty' : parseInt($('#' + id + '-difficulty').val(), 10)
+			}})
+		}).done(function (response, status){
+				//$('#flashcard').html(current_card['definition']);
+				console.log("saveChanges was called");
+				console.log(response);
+				$('#' + id + "-viewword").html(response['word'])
+				$('#' + id + "-viewdefintion").html(response['definition'])
+				$('#' + id + "-viewdifficulty").html(response['difficulty'])
+		});
+	}
+
+	$(function() { // document ready
+
+		$(".edit").on('click', function(evt) {
+			evt.preventDefault();
+			var id = $(this).attr('id').split('-')[0];
+			console.log("Got id " + id);
+			$("#" + id + "-edit-form").show();
+		}); 
+
+		$(".save").on('click', function(evt) {
+			evt.preventDefault();
+			var id = $(this).attr('id').split('-')[0];
+			console.log("Got id " + id);
+			saveChanges(id);
+			$("#" + id + "-edit-form").hide();
+		});
+
+	});
+
+
+
